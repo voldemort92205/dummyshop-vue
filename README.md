@@ -1,1 +1,1 @@
-# dummyshop-vue
+# Dummy Shop

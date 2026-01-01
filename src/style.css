@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#app {
+  text-align: center;
+  width: 100vw;
+  min-height: 100vh;
+}
+
+@layer base {
+  h1 {
+    @apply text-5xl mb-3;
+  }
+  div {
+    @apply font-mono text-slate-800 dark:text-slate-200;
+  }
+  svg text {
+    @apply font-mono text-slate-800 dark:text-slate-200;
+  }
+}
+
+
+@layer utilities {
+  .footer_icon {
+    @apply mx-2;
+  }
+  .container {
+    @apply my-5;
+  }
+  .btn_class {
+    @apply shadow inline-flex justify-center gap-x-1.5 px-5 py-3 font-semibold 
+            shadow-black my-1 rounded hover:bg-slate-200;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
