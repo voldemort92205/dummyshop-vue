@@ -3,61 +3,61 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 
 export const useProductsStore = defineStore("getProducts", () => {
-    const prodcutsSrcPrefix = import.meta.env.VITE_PRODUCTS_SRC;
+    const productsSrcPrefix = import.meta.env.VITE_PRODUCTS_SRC;
 
     const isDownloading = ref(false);
     const totalProducts = ref(-1);
-
-    const refreshTime = ref("Null");
+    const refreshTime = ref(null);
     const dataSet = reactive([]);
     const categorySet = reactive([]);
     const categoryNameList = reactive([]);
-
     const lastCategoryName = ref("");
 
     async function getProductCategory () {
-        const categoryUrl = prodcutsSrcPrefix + "/categories";
-        await axios.get(categoryUrl)
-            .then ((response) => {
-                categorySet.splice(0, categoryUrl.length);
-                categoryNameList.splice(0, categoryNameList.length);
-                response.data.forEach((item) => {
-                    categorySet.push(item);
-                    categoryNameList.push(item.name);
-                })
+        const categoryUrl = `${productsSrcPrefix}/categories`;
+        try {
+            const response = await axios.get(categoryUrl);
+            categorySet.splice(0, categorySet.length);
+            categoryNameList.splice(0, categoryNameList.length);
+            response.data.forEach((item) => {
+                categorySet.push(item);
+                categoryNameList.push(item.name);
             })
-            .catch (error => {
-                console.log (`Error while downloading category: ${error.message}`);
-            })
+            console.log (`Loaded ${categorySet.length} category.`);
+        } catch (error) {
+            console.log (`Error while downloading category: ${error.message}`);
+            throw error;
+        }
     }
 
-    async function getProductListFomUrl (forceUpdate = false, url) {
-        if (!forceUpdate && refreshTime.value !== "Null") {
-            console.log ("Last refreshTime: ", refreshTime.value);
+    async function getProductListFromUrl (forceUpdate = false, url) {
+        if (!forceUpdate && refreshTime.value !== null) {
+            console.log(`Data already loaded at ${refreshTime.value}, skip this time...`);
             return;
         }
         if (isDownloading.value) {
-            console.log ("There is a download process, skip this time...");
+            console.log ("Download is in progress, skip this time...");
             return;
         }
-        isDownloading.value = true;
-        await axios.get(url)
-            .then((response) => {
-                dataSet.splice(0, dataSet.length);
 
-                // update product list
-                response.data.products.forEach((item) => {
-                    dataSet.push(item)
-                })
-                totalProducts.value = response.data.total;
+        try {
+            isDownloading.value = true;
+            const response = await axios.get(url);
 
-                refreshTime.value = new Date().toLocaleString();
-                console.log ("Download Complete!!");
+            // update product list
+            dataSet.splice(0, dataSet.length);
+            response.data.products.forEach((item) => {
+                dataSet.push(item)
             })
-            .catch(error => {
-                console.log ("error: ", error.message);
-            })
-        isDownloading.value = false;
+            totalProducts.value = response.data.total;
+            refreshTime.value = new Date().toLocaleString();
+            console.log(`Downloaded: ${dataSet.length}/${totalProducts.value} products`);
+        } catch (error) {
+            console.log (`Error while downloading products: ${error.message}`);
+            throw error;
+        } finally {
+            isDownloading.value = false;
+        }
     }
 
     async function getCertainProducts (categoryName) {        
@@ -68,24 +68,34 @@ export const useProductsStore = defineStore("getProducts", () => {
         }
 
         // check category is available
-        const item = categorySet.find((item) => item.name === categoryName);
-        if (item === undefined) {
-            console.log (`Cateogor ${categoryName} is not available!!`);
-            return;
+        const category = categorySet.find((item) => item.name === categoryName);
+        if (!category) {
+            console.log (`Category ${categoryName} is not found!!`);
+            throw new Error(`Category ${categoryName} is not available!!`);
         }
-        await getProductListFomUrl (true, item.url);
+        await getProductListFromUrl (true, category.url);
+        lastCategoryName.value = categoryName;
     }
-
-    /*
-    async function getAllProducts (forceUpdate = false) {
-        const productsUrl = prodcutsSrcPrefix;
-        await getProductListFomUrl (forceUpdate, productsUrl);
-    }
-    */
 
     async function fetchData (forceUpdate = false) {
         await getProductCategory ();
+
+        if (categorySet.length > 0) {
+            // load the first category by default
+            const firstCategory = categorySet[0];
+            await getProductListFromUrl (forceUpdate, firstCategory.url);
+            lastCategoryName.value = firstCategory.name;
+        }
     }
-    return {fetchData, refreshTime, dataSet, totalProducts,
-            categoryNameList, getCertainProducts};
+    return {
+        // State
+        dataSet,
+        refreshTime,
+        totalProducts,
+        categoryNameList,
+
+        // Actions
+        fetchData,
+        getCertainProducts
+    };
 })

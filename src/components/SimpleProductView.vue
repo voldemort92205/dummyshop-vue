@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed } from 'vue';
+import {Loading, Picture, ShoppingCart} from '@element-plus/icons-vue';
 
 const props = defineProps({
     figSrc: {
@@ -10,85 +11,215 @@ const props = defineProps({
         type: String,
         default: "fig title"
     },
-    imgClass: {
-        type: String,
-        default: "h-40 w-40"
-    },
-    titleClass: {
-        type: String,
-        default: "text"
-    },
     price: {
         type: Number,
         required: true,
     },
-    viewWidth: {
+    description: {
         type: String,
-        default: "w-40"
+        default: ""
     },
-    viewHeight: {
-        type: String,
-        default: "h-50"
+    inStock: {
+        type: Boolean,
+        default: true
     },
 });
 
-const emits = defineEmits([
-    'addToCart'
-]);
+const emits = defineEmits(['addToCart']);
 
-const isShowFullScreenFigure = ref(false);
-const changeFullScreenStatus = () => {
-    isShowFullScreenFigure.value = !isShowFullScreenFigure.value;
-    isShowFullScreenFigure.value = false;
-}
+// 價格格式化
+const formattedPrice = computed(() => {
+    return new Intl.NumberFormat('zh-TW', {
+        style: 'currency',
+        currency: 'TWD',
+        minimumFractionDigits: 0
+    }).format(props.price);
+});
 
-const containerClass = ref("")
-watch (() => props, () => {
-    containerClass.value = `${props.viewHeight} ${props.viewWidth}`
-})
+// 處理加入購物車
+const handleAddToCart = () => {
+    emits('addToCart');
+};
 </script>
 
 <template>
-    <div class=""
-         :class="containerClass"
-        >
+    <el-card 
+        shadow="hover" 
+        class="product-card h-full flex flex-col"
+        :body-style="{ padding: '16px', display: 'flex', flexDirection: 'column', height: '100%' }"
+    >
+        <!-- 商品圖片 -->
+        <div class="image-container mb-4">
+            <el-image 
+                :src="props.figSrc" 
+                :preview-src-list="[props.figSrc]"
+                :initial-index="0"
+                fit="cover"
+                class="product-image"
+                lazy
+            >
+                <template #placeholder>
+                    <div class="image-slot">
+                        <el-icon class="is-loading">
+                            <Loading />
+                        </el-icon>
+                    </div>
+                </template>
+                <template #error>
+                    <div class="image-slot">
+                        <el-icon>
+                            <Picture />
+                        </el-icon>
+                    </div>
+                </template>
+            </el-image>
 
-        <div class="mx-auto hover:bg-slate-200 dark:hover:bg-slate-600" 
-             @click="changeFullScreenStatus">
-            <img :src="props.figSrc" 
-                class="object-cover"
-            />
+            <!-- 缺貨標籤 -->
+            <el-tag 
+                v-if="!props.inStock" 
+                type="danger" 
+                class="stock-tag"
+                effect="dark"
+            >
+                缺貨中
+            </el-tag>
         </div>
-        <div class="bg-amber-400 my-2 text-lg
-                    text-center cursor-pointer flex flex-col justify-center
-                    hover:bg-amber-800 hover:text-white
-                    dark:hover:bg-slate-600"
-            @click="$emit('addToCart')"
-        >
-            加入購物清單
-        </div>
-        <div class="font-mono font-medium "
-              type="button"
-              :class="props.titleClass"
-              @click="changeFullScreenStatus">
-            {{ props.title }}
-        </div>
-        <div>價格: ${{ props.price }}</div>
 
-        <!-- make image cover the screen -->
-        <div v-if="isShowFullScreenFigure"
-            class="fixed top-0 left-0 mx-auto w-full h-screen bg-white/70 z-10
-                    flex justify-center items-center"
-             @click.self="changeFullScreenStatus"
-        >
-            <img :src="props.figSrc" 
-                    class="rounded shadow shadow-black mx-auto h-5/6"
-                />
-            <i class="fa-regular fa-circle-xmark fa-2x absolute top-5 left-<50>"
-                @click="changeFullScreenStatus"></i>
+        <!-- 商品資訊 -->
+        <div class="flex-1 flex flex-col">
+            <!-- 商品標題 -->
+            <el-tooltip 
+                :content="props.title" 
+                placement="top"
+                :disabled="props.title.length < 30"
+            >
+                <el-text 
+                    size="large" 
+                    class="product-title mb-2 font-medium"
+                    truncated
+                    line-clamp="2"
+                >
+                    {{ props.title }}
+                </el-text>
+            </el-tooltip>
+
+            <!-- 商品描述（如果有） -->
+            <el-text 
+                v-if="props.description" 
+                type="info" 
+                size="small"
+                class="mb-3"
+                truncated
+            >
+                {{ props.description }}
+            </el-text>
+
+            <!-- 價格 -->
+            <div class="mt-auto">
+                <el-divider class="my-3" />
+                
+                <div class="flex items-center justify-between mb-3">
+                    <el-text size="small" type="info">價格</el-text>
+                    <el-text 
+                        size="large" 
+                        class="price-text font-bold"
+                        type="primary"
+                    >
+                        {{ formattedPrice }}
+                    </el-text>
+                </div>
+
+                <!-- 加入購物車按鈕 -->
+                <el-button 
+                    type="primary" 
+                    :icon="ShoppingCart"
+                    @click="handleAddToCart"
+                    class="w-full"
+                    :disabled="!props.inStock"
+                    size="large"
+                >
+                    {{ props.inStock ? '加入購物車' : '已售完' }}
+                </el-button>
+            </div>
         </div>
-    </div>
+    </el-card>
 </template>
 
 <style scoped>
+/* 卡片樣式 */
+.product-card {
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+}
+
+/* 圖片容器 */
+.image-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: var(--el-fill-color-light);
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.product-image:hover {
+    transform: scale(1.05);
+}
+
+/* 圖片載入中/錯誤 */
+.image-slot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: var(--el-fill-color-light);
+    color: var(--el-text-color-secondary);
+    font-size: 30px;
+}
+
+/* 缺貨標籤 */
+.stock-tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+}
+
+/* 標題樣式 */
+.product-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+    min-height: 3em;
+}
+
+/* 價格樣式 */
+.price-text {
+    font-size: 1.25rem;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .image-container {
+        height: 180px;
+    }
+    
+    .price-text {
+        font-size: 1.125rem;
+    }
+}
 </style>

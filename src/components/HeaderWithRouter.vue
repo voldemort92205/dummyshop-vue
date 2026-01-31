@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useWindowSize } from '@vueuse/core';
+import { Menu as MenuIcon } from '@element-plus/icons-vue';
 
 const props = defineProps ({
     headerMessage: {
@@ -21,79 +22,197 @@ const menuBarChange = () => {
 
 // highlight current page
 const route = useRoute();
-const currentPath = ref("");
-watch(() => route.path, (newPath) => {
-    currentPath.value = newPath;
-});
+const currentPath = computed(() => route.path);
 
 // handle window size
-const {width, height} = useWindowSize();
-const isLargeSize = ref(true);
-watch (() => width.value, () => {
-    checkWindowSize();
-})
-const checkWindowSize = () => {
-    //isLargeSize.value = width.value >= 1072;
-    isLargeSize.value = width.value >= 600;
-}
+const {width} = useWindowSize();
+const isLargeSize = computed(() => width.value >= 800);
 
-onMounted (() => {
-    checkWindowSize();
-})
+const activeColor = ref("#409eff");
 </script>
 
 <template>
-    <div class="sticky top-0 z-10">
-    <header class="w-full bg-white dark:bg-zinc-800
-                    border-b border-gray-300
-                    opacity-90 grid grid-cols-2 z-10
-                    h-16">
-        <div class="text-2xl my-auto px-5 md:text-3xl">
-            <!-- hardcoe the homepage link here -->
-            <RouterLink to="/" key="home-button"
-            >
-                {{ props.headerMessage }}
-            </RouterLink>
-        </div>
+    <el-affix :offset="0">
+    <el-header
+        height="64px"
+        class="header-container"
+    >
+        <el-row align="middle" justify="center" class="h-full">
+            <el-col :span="12">
+                <!-- logo and brand -->
+                <router-link to="/" key="home-button"
+                        class="brand-link"
+                >
+                    <el-text
+                        size="large"
+                        class="brand-text">
+                        {{ props.headerMessage }}
+                    </el-text>
+                </router-link>
+            </el-col>
 
-        <div class="my-auto flex justify-center" v-if="isLargeSize">
-            <!-- large window size -->
-            <RouterLink v-for="item in props.routerInfo"
-                    :to="item.linkUrl" :key="item.name"
-                    class="flex flex-column px-1 py-1 text-lg hover:bg-slate-200
-                            rounded hover:dark:bg-slate-600 mx-1"
-                    :class="[currentPath === item.linkUrl? 'text-red-900' : '' ]"
-            >
-                {{ item.name }}
-            </RouterLink>
-        </div>
-        <div class="my-auto absolute right-0 pr-6" v-if="!isLargeSize">
-            <!-- small window size -->
-            <button type="button" style="cursor: pointer;"
-                    class="h-15 w-15 my-auto text-xl"
-                    @click="menuBarChange">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-        </div>
-    </header>
-    <div v-if="showMenu && !isLargeSize"
-        class="sticky top-0 h-screen bg-white/60 dark:bg-zinc-800/60"
-        @click="menuBarChange">
-        <div class="w-2/4 mx-auto flex flex-col justify-center border bg-white dark:bg-zinc-800"
-            @click="menuBarChange">
-        <RouterLink v-for="item in props.routerInfo"
-                    :to="item.linkUrl" :key="item.name"
-                    class="flex flex-row px-2 py-2 text-xl hover:bg-slate-200
-                            rounded hover:dark:bg-slate-600"
+            <!-- large window format -->
+            <el-col v-if="isLargeSize"
+                    :span="12"
+                    class="flex justify-end">
+                <el-menu
+                    mode="horizontal"
+                    class="header-menu"
+                    :ellipsis="false"
+                    :active-text-color="activeColor"
+                    :default-active="currentPath"
+                    router
+                >
+                    <el-menu-item
+                        v-for="item in props.routerInfo"
+                        :key="item.linkUrl"
+                        :index="item.linkUrl"
+                    >
+                        <el-text>{{ item.name }}</el-text>
+                    </el-menu-item>            
+                </el-menu>
+            </el-col>
+            <el-col v-else :span="12" class="flex justify-end">
+                <el-button
+                    circle
                     @click="menuBarChange"
-        >
-            {{ item.name }}
-        </RouterLink>
-        </div>
-    </div>
+                    size="large"
+                    :icon="MenuIcon"
+                >
+                </el-button>
+            </el-col>
+        </el-row>
+    </el-header>
 
-    </div>
+    <el-drawer
+        v-model="showMenu"
+        direction="ltr"
+        size="50%"
+        :with-header="true"
+    >
+        <template #header>
+            <el-text size="large" tag="b">
+                {{ props.headerMessage }}
+            </el-text>
+        </template>
+        <el-menu
+            :default-active="currentPath"
+            router
+            :active-text-color="activeColor"
+            @select="menuBarChange"
+            class="drawer-menu"
+        >
+            <el-menu-item
+                v-for="item in props.routerInfo"
+                :key="item.linkUrl"
+                :index="item.linkUrl"
+            >
+                <el-text>{{ item.name }}</el-text>
+            </el-menu-item>
+        </el-menu>
+    </el-drawer>    
+    </el-affix>
 </template>
 
 <style scoped>
-</style>
+.el-header {
+    --el-header-padding: 0 20px;
+    --el-header-height: 64px;
+}
+.header-container {
+    width: 100%;
+    background-color: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    opacity: 0.95;
+}
+.dark .header-container {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    opacity: 0.98;
+}
+
+.brand-link {
+    font-weight: 700;
+    margin: auto 0;
+    padding: 0 1rem;
+    text-decoration: none;
+    color: var(--el-text-color-primary);
+    transition: color 0.3s ease;
+}
+.brand-link:hover {
+    color: var(--el-color-primary);
+}
+
+.brand-text {
+    font-weight: 700;
+    font-size: 1.875rem; /* 3xl */
+    color: var(--el-text-color-primary);
+}
+
+.header-menu {
+    justify-content: center;
+    border: none;
+    background-color: transparent;
+}
+.header-menu.el-menu--horizontal {
+    border-bottom: none;
+}
+.header-menu :deep(.el-menu-item) {
+    font-size: 1rem;
+    margin: 0 10px;
+    transition: all 0.3s ease;
+}
+.header-menu :deep(.el-menu-item:hover) {
+    background-color: var(--el-menu-hover-bg-color);
+}
+.header-menu :deep(.el-menu-item.is-active) {
+    background-color: var(--el-color-primary-light-9);
+    border-bottom-color: var(--el-color-primary);
+    font-weight: 600;
+}
+.dark .header-menu :deep(.el-menu-item.is-active) {
+    background-color: rgba(64, 158, 255, 0.2);
+}
+
+.dark .el-button.is-circle {
+    background-color: var(--el-fill-color-light);
+    border-color: var(--el-border-color);
+}
+
+/* drawer menu style */
+.drawer-menu {
+    border-right: none;
+    background-color: transparent;
+}
+.drawer-menu :deep(.el-menu-item) {
+    
+    margin: 0;
+    transition: all 0.3s ease;
+}
+
+/* 項目之間有邊框 */
+.drawer-menu :deep(.el-menu-item:not(:last-child)) {
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.drawer-menu :deep(.el-menu-item:hover) {
+    background-color: var(--el-menu-hover-bg-color);
+}
+.drawer-menu :deep(.el-menu-item.is-active) {
+    background-color: var(--el-color-primary-light-9);
+    color: var(--el-color-primary);
+    font-weight: 600;
+}
+.dark .drawer-menu :deep(.el-menu-item.is-active) {
+    background-color: rgba(64, 158, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+    .brand-text {
+        font-size: 1.5rem;
+    }
+
+    .brand-link {
+        padding: 0 0.5rem;
+    }
+}
+</style> 
