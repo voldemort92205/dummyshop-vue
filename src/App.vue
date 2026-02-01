@@ -64,7 +64,11 @@ onMounted(() => {
       :routerInfo="navLists"
     />
     <div class="w-5/6 mx-auto mt-3">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <keep-alive>
+          <component :is="Component" />
+        </keep-alive>
+      </RouterView>
     </div>
     <Footer />
 </div>
